@@ -1,0 +1,24 @@
+# packet-inspector ACL rules
+#
+# Evaluated top to bottom; the first matching rule wins. Packets that match
+# no rule get the DEFAULT action. Only IPv4 packets are evaluated.
+#
+# ACTION, PROTOCOL, SRC_IP, SRC_PORT, DST_IP, DST_PORT, REASON
+#   ACTION    ALLOW | DENY
+#   PROTOCOL  ANY | TCP | UDP | ICMP | <IP protocol number>
+#   IP        ANY | a.b.c.d | a.b.c.d/len
+#   PORT      ANY | n | lo-hi   (a rule with ports never matches ICMP or later fragments)
+#   REASON    free text shown on BLOCK lines (optional)
+
+# Rules are stateless: replies need their own ALLOW (note the resolver's
+# answers come FROM port 53 and would otherwise hit "Blocked DNS").
+ALLOW, UDP,  ANY,            ANY, 10.0.0.53,        53,   Internal resolver
+ALLOW, UDP,  10.0.0.53,      53,  ANY,              ANY,  Internal resolver replies
+DENY,  UDP,  ANY,            53,  ANY,              ANY,  Blocked DNS
+DENY,  UDP,  ANY,            ANY, ANY,              53,   Blocked DNS
+DENY,  TCP,  ANY,            ANY, ANY,              23,   Telnet is not allowed
+DENY,  TCP,  ANY,            ANY, ANY,              6660-6669, IRC
+DENY,  ANY,  203.0.113.0/24, ANY, ANY,              ANY,  Known-bad network
+DENY,  ICMP, ANY,            ANY, 192.168.1.0/24,   ANY,  No ICMP into the server subnet
+
+DEFAULT, ALLOW
